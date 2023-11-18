@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html >
+    <head>
+<title>Login in REDMINE Data Analytics</title>
+<link rel="stylesheet" href="../css/styleLogin.css">
+    </head>
+
+<body class="body">
+
+    <div class="container">
+     <div class="center">
+        <label  id="logg">Log In</label>
+        <a href="../html/signUp.html" id="signn">Sign Up</a>
+       <div class="form">
+        <div class="title">
+            <h2>Welcome to REDMINE Data Analytics</h2>
+          </div>
+          <form action="post">
+              <div class="loginForm">
+                  <label for="nameUser">Username: </label><br><br>
+                  <input type="text"  name="nameUser" placeholder="Username" id="user" onkeypress="return check(event)" minlength="1" maxlength="20" required><br>
+                  <label for="password">Password:</label><br><br>
+                  <input type="password" name="password" placeholder="Password" id="user" minlength="1" maxlength="20" required><br>
+              </div>
+              <div>
+                 <input type="submit" value="Log In">
+                 <input type="button" onclick="goBack()" value="Back">
+              </div>
+            </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/login.js"> </script>
+</body>
+</html>

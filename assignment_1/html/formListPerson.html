@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>List Person Participe</title>
+    <link rel="stylesheet" href="../css/styleFormListPerson.css">
+  
+</head>
+<body class="bodyConf">
+    <div class="wrapper">
+        <!-- <a href="principalPage.html" id="profile">Profile</a> -->
+        <div class="navConf">
+            <a  href="../html/mainPage.html" id="redmine">REDMINE</label>
+            <a href="../html/login.html">Log In</a>
+            <a href="../html/signUp.html">Sign Up</a>
+
+            <a href="../html/formAddTask.html">Add Task</a>
+            <label class="activeLink">List of Persons</label>
+            <a href="../html/fromChangeSuggestion.html">Change Suggestion</a>
+
+            <!-- <label for="lightMode">Light Mode</label>
+            <input type="checkbox" name="lightMode" id="mode" onclick="toggleTheme()"> -->
+        </div>
+    </div>
+    <div class="container">
+     <div class="table-container">
+        <div id="tablePer" class="center">
+            <div class="form">
+                <div class="title">
+                    <h2>List Of Participants</h2>
+                </div>
+                <form id="listForm" action="exportTable.jsp" method="post">
+                    <div class="table">
+                        <table id="reportTable" class="tableConf">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Last Name</th>
+                                    <th>Mail</th>
+                                    <th>Projects Participate</th>
+                                    <th>Hours Reported by Projects</th>
+                                    <th>Homeworks Delay</th>
+                                </tr>
+                            </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                        </table>
+                    </div>
+                    <div>
+                        <input type="submit" value="Export">
+                    </div>
+                </form>
+            </div>
+            </div>
+        </div>
+            <div class="filter-container">
+            <div id="filterPer" class="center">
+                <div class="form">
+                    <div class="filters">
+                        <label for="filter">Filter Selection:</label><br>
+                        <select id="selectedFilter" onchange="selection()">
+                            <option value="0">No filter</option>
+                            <option value="2">Filter by person</option>
+                            <option value="3">Filter by intervals</option>
+                          </select>
+                          
+                    </div>
+                    <div id="filterOfPerson" class="filter" hidden>
+                        <h3>Filter by person:</h3>
+                        <label for="userName">Name of the users:</label>
+                        <select name="userName" id="filterByName" onchange="filterName()">
+                            <option value="0">Select Item</option>
+                        </select><br>
+                        <label for="lastName">Lastname of the users:</label onchange="filterLastName()">
+                        <select name="lastName" id="filterByLastName">
+                            <option value="0">Select Item</option>
+                        </select><br>
+                    </div>
+                    <div id="filterOfIntervals" class="filter" hidden>
+                        <h3>Filter by interval:</h3>
+                        <label for="numberProjects">Number of Projects</label><br>
+                        <input type="range" name="numberProjects" id="numberProjects" min="0" max="5" oninput="filterTableByProjects()"><br>
+                        <span id="projectsValue">0</span><br>
+                        <label for="numberHours">Number of Hours</label><br>
+                        <input type="range" name="numberHours" id="numberHours" min="0" max="20" oninput="filterTableByHours()">
+                        <span id="hoursValue">0</span>                       
+                        <label for="numberDelay">Number of Homeworks Delay</label><br>
+                        <input type="range" name="homeworkDelay" id="homeworkDelay" min="0" max="2" oninput="filterTableByHomeworkDelay()">
+                        <span id="homeworkDelayValue">0</span>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <script src="../js/listPerson.js">
+ 
+     </script>    
+       
+
+</body>
+</html>
+

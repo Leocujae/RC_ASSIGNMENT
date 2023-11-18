@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signin in REDMINE Data Analytics</title>
+    <link rel="stylesheet" href="../css/styleSignUp.css">
+</head>
+<body class="body">
+    <div class="container">
+        <div class="center">
+            <a href="login.html" id="logg">Log In</a>
+            <label  id="signn">Sign Up</label>
+            <div class="form">
+                <div class="title">
+                    <h2>Welcome to REDMINE Data Analytics</h2>
+                </div>
+                <form action="post">
+                    <div class="divForm">
+                        <div>
+                            <label for="user">Username:</label>
+                            <input type="text" name="nameUser" placeholder="Username" id="user" onkeypress="return check(event)" minlength="1" maxlength="20" required>
+                        </div>
+                        <div>
+                            <label for="mail">Email:</label>
+                            <input type="email" name="mailUser" id="mail" placeholder="example@redmine.com" onkeypress="return check(event)" required>
+                        </div>
+                        
+                    </div>
+                    <div class="divForm">
+                        <div>
+                            <label for="password">Password:</label>
+                            <input type="password" name="password" placeholder="Password user" id="password" required>
+                        </div>
+                        <div>
+                            <label for="phone">Phone:</label>
+                            <input type="tel" name="phoneUser" id="phone" placeholder="Phone" onkeypress="return checkPhone(event)" required>
+                        </div>
+                    </div>
+                    <div class="divForm">
+                        <div>
+                            <label for="repeat">Confirm password:</label>
+                            <input type="password" name="repeat" placeholder="Confirm password" id="repeat" required>
+                        </div>
+                            <div>
+                            <label for="birthdate">Birthday:</label>
+                            <input type="date" name="birthdate" id="birthdate" max="2005-01-01" min="1922-01-01" required>
+                        </div> 
+                        
+                    </div>
+                    <div class="divForm">
+                        <input type="submit" value="Sign Up">
+                        <input type="button" onclick="goBack()" value="Back">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/signUp.js"></script>
+</body>
+</html>
