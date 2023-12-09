@@ -1,0 +1,68 @@
+from socket import *
+import base64
+import ssl
+
+def obtener_datos_usuario():
+    remitente = "leonardocujae@gmail.com"
+    password = "nclnhwlvisrcrrww"
+    destinatario = input("Ingrese la dirección de correo del destinatario: ")
+    servidor_smtp = "smtp.gmail.com"
+    puerto_smtp = 465  # Use port 465 for SSL
+    asunto = input("Ingrese el asunto del correo: ")
+    cuerpo = input("Ingrese el cuerpo del correo: ")
+    
+    return remitente, password, destinatario, servidor_smtp, puerto_smtp, asunto, cuerpo
+
+def establecer_conexion(servidor_smtp, puerto_smtp):
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    clientSocket.connect((servidor_smtp, puerto_smtp))
+    context = ssl.create_default_context()
+    clientSocketSSL = context.wrap_socket(clientSocket, server_hostname=servidor_smtp)
+    return clientSocketSSL
+
+def enviar_comando_y_mostrar_respuesta(clientSocketSSL, command):
+    clientSocketSSL.send(command.encode())
+    response = clientSocketSSL.recv(1024).decode()
+    print(response)
+    return response
+
+def enviar_correo(destinatario, asunto, cuerpo, remitente, password, servidor_smtp, puerto_smtp):
+    mensaje = 'FROM: ' + remitente + '\r\n'
+    mensaje += 'TO: ' + destinatario +  '\r\n'
+    mensaje += 'Subject: ' + asunto +  '\r\n'
+    mensaje += "\r\n"+ cuerpo
+    endmsg = "\r\n.\r\n"
+
+    clientSocketSSL = establecer_conexion(servidor_smtp, puerto_smtp)
+
+    recv = clientSocketSSL.recv(1024).decode()
+    print(recv)
+    if recv[:3] != '220':
+        print('220 reply not received from server.')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, 'EHLO example.com\r\n')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, 'AUTH LOGIN\r\n')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, base64.b64encode(remitente.encode()).decode() + '\r\n')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, base64.b64encode(password.encode()).decode() + '\r\n')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, f'MAIL FROM: <{remitente}>\r\n')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, f'RCPT TO: <{destinatario}>\r\n')
+
+    enviar_comando_y_mostrar_respuesta(clientSocketSSL, 'DATA\r\n')
+
+    clientSocketSSL.send(mensaje.encode())
+
+    clientSocketSSL.send(endmsg.encode())
+
+    recv = enviar_comando_y_mostrar_respuesta(clientSocketSSL, 'QUIT\r\n')
+
+    clientSocketSSL.close()
+
+if __name__ == "__main__":
+    remitente, password, destinatario, servidor_smtp, puerto_smtp, asunto, cuerpo = obtener_datos_usuario()
+
+    enviar_correo(destinatario, asunto, cuerpo, remitente, password, servidor_smtp, puerto_smtp)
