@@ -36,6 +36,7 @@
 ##
 
 import argparse
+from binascii import crc32
 from copy import deepcopy
 from enum import Enum, auto
 import random
@@ -98,85 +99,103 @@ class Pkt:
 ## ****************************************************************************
 
 class EntityA:
+
     def __init__(self, seqnum_limit):
+        # How long to wait for ack?
+        self.WAIT_TIME = 10.0 + 4.0 * seqnum_limit // 2
+
+        # Configuration.
         self.seqnum_limit = seqnum_limit
-        self.next_seqnum = 0
+        self.window_size = seqnum_limit // 2
+
+        # State.
         self.base = 0
-        self.window_size = 4
-        self.buffer = []
+        self.layer3_pkts = []
+        self.layer5_msgs = []
+        self.made_progress = True
+        self.n_no_progress = 0
 
     def output(self, message):
-        if self.next_seqnum < self.base + self.window_size:
-            packet = Pkt(self.next_seqnum, 0, 0, message.data)
-            self.buffer.append(packet)
+        self.layer5_msgs.append(message)
+        self.maybe_output_from_queue()
+
+    def maybe_output_from_queue(self):
+        while self.layer5_msgs and len(self.layer3_pkts) < self.window_size:
+            msg = self.layer5_msgs.pop(0)
+            seq_num = self.next_seqnum()
+            packet = Pkt(seq_num, 0, 0, msg.data)
+            pkt_insert_checksum(packet)
+            self.layer3_pkts.append(packet)
             to_layer3(self, packet)
-            if self.base == self.next_seqnum:
-                start_timer(self, 20.0)  # Set a timer for the oldest unacknowledged packet
-            self.next_seqnum += 1
-        else:
-            # Buffer is full, ignore the message or take appropriate action.
-            pass
+            if len(self.layer3_pkts) == 1:
+                start_timer(self, self.WAIT_TIME)
+
+    def next_seqnum(self):
+        return (self.base + len(self.layer3_pkts)) % self.seqnum_limit
 
     def input(self, packet):
-        if self._is_valid_packet(packet):
-            if packet.acknum >= self.base:
-                self.base = packet.acknum + 1
-                if self.base == self.next_seqnum:
-                    stop_timer(self)
-                else:
-                    start_timer(self, 20.0)  # Set a timer for the next unacknowledged packet
+        if pkt_is_corrupt(packet):
+            return
 
-    def timerinterrupt(self):
-        # Resend all packets in the window
-        for packet in self.buffer:
+        i = 0
+        while i < len(self.layer3_pkts):
+            if self.layer3_pkts[i].seqnum != packet.acknum:
+                i += 1
+                continue
+
+            self.base += i + 1
+            self.layer3_pkts = self.layer3_pkts[i + 1:]
+            if TRACE > 0:
+                if self.n_no_progress > 0 and not self.made_progress:
+                    print(f'[A:base {self.base}] Finally made some progress!')
+            self.made_progress = True
+            self.n_no_progress = 0
+            stop_timer(self)
+            if self.layer3_pkts:
+                start_timer(self, self.WAIT_TIME)
+            self.maybe_output_from_queue()
+            break
+
+    def timer_interrupt(self):
+        if not self.made_progress:
+            self.n_no_progress += 1
+            if TRACE > 0:
+                print(f'[A:base {self.base}] Rats! Made no progress for {self.n_no_progress} timeouts.')
+        self.made_progress = False
+        for packet in self.layer3_pkts:
             to_layer3(self, packet)
-        start_timer(self, 20.0)  # Set a timer for the oldest unacknowledged packet
-
-    def init(self):
-        # Initialization code for A
-        pass
-
-    def _is_valid_packet(self, packet):
-        return (
-            type(packet) is Pkt
-            and 0 <= packet.seqnum < self.seqnum_limit
-            and 0 <= packet.acknum < self.seqnum_limit
-            and type(packet.checksum) is int
-            and type(packet.payload) is bytes
-            and len(packet.payload) == Msg.MSG_SIZE
-        )
+        start_timer(self, self.WAIT_TIME * (self.n_no_progress + 1))
 
 
 class EntityB:
     def __init__(self, seqnum_limit):
+        # Configuration.
         self.seqnum_limit = seqnum_limit
+
+        # State.
         self.expected_seqnum = 0
+        self.last_acked = seqnum_limit-1
 
     def input(self, packet):
-        if self._is_valid_packet(packet):
-            if packet.seqnum == self.expected_seqnum:
-                to_layer5(self, Msg(packet.payload))
-                ack_packet = Pkt(0, packet.seqnum, 0, bytes([97 + self.expected_seqnum % 26 for _ in range(Msg.MSG_SIZE)]))
-                to_layer3(self, ack_packet)
-                self.expected_seqnum = (self.expected_seqnum + 1) % self.seqnum_limit
+        if (pkt_is_corrupt(packet)
+            or packet.seqnum != self.expected_seqnum):
+            p = Pkt(0, self.last_acked, 0, packet.payload)
+            pkt_insert_checksum(p)
+            to_layer3(self, p)
+        else:
+            to_layer5(self, Msg(packet.payload))
+            p = Pkt(0, self.expected_seqnum, 0, packet.payload)
+            pkt_insert_checksum(p)
+            to_layer3(self, p)
+            self.last_acked = self.expected_seqnum
+            self.expected_seqnum = self.next_expected_seqnum()
 
-    def timerinterrupt(self):
-        # EntityB no utiliza temporizadores, por lo que no es necesario realizar ninguna acción.
+    def next_expected_seqnum(self):
+        return (self.expected_seqnum + 1) % self.seqnum_limit
+
+    def timer_interrupt(self):
         pass
 
-    def B_init(self):
-        # Initialization code for B
-        pass
-
-    def _is_valid_packet(self, packet):
-        return (
-            type(packet) is Pkt
-            and 0 <= packet.seqnum < self.seqnum_limit
-            and 0 <= packet.acknum < self.seqnum_limit
-            and type(packet.checksum) is int
-            and type(packet.payload) is bytes
-            and len(packet.payload) == Msg.MSG_SIZE
-        )
 
 ###############################################################################
 
@@ -197,6 +216,19 @@ class EntityB:
 ##   to_layer3(self, Pkt(...)) # Construct a Pkt and send it to layer3.
 ##
 ## ****************************************************************************
+
+def pkt_compute_checksum(packet):
+    crc = 0
+    crc = crc32(packet.seqnum.to_bytes(4, byteorder='big'), crc)
+    crc = crc32(packet.acknum.to_bytes(4, byteorder='big'), crc)
+    crc = crc32(packet.payload, crc)
+    return crc
+
+def pkt_insert_checksum(packet):
+    packet.checksum = pkt_compute_checksum(packet)
+
+def pkt_is_corrupt(packet):
+    return pkt_compute_checksum(packet) != packet.checksum
 
 def start_timer(calling_entity, increment):
     the_sim.start_timer(calling_entity, increment)
